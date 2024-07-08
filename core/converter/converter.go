@@ -10,6 +10,7 @@ import (
 
 	pdf "github.com/stephenafamo/goldmark-pdf"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 )
 const font = "Noto Sans";
 type httpFS struct {
@@ -41,6 +42,10 @@ func (f *httpFile) Seek(offset int64, whence int) (int64, error) {
 
 func ConvertMarkdownToPDF(markdown string) ([]byte, error) {
     md := goldmark.New(
+        goldmark.WithExtensions(extension.GFM),
+        // goldmark.WithExtensions(extension.Typographer),
+        goldmark.WithExtensions(extension.Linkify),
+        goldmark.WithExtensions(extension.TaskList),
         goldmark.WithRenderer(
             pdf.New(
                 pdf.WithTraceWriter(os.Stdout),
