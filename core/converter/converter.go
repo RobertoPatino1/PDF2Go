@@ -2,65 +2,61 @@ package converter
 
 import (
 	"bytes"
-	"strings"
+	"context"
+	"io"
+	"io/fs"
+	"net/http"
+	"os"
 
-	"github.com/jung-kurt/gofpdf"
-	"github.com/russross/blackfriday/v2"
+	pdf "github.com/stephenafamo/goldmark-pdf"
+	"github.com/yuin/goldmark"
 )
+const font = "Noto Sans";
+type httpFS struct {
+    fs fs.FS
+}
+
+type httpFile struct {
+    fs.File
+}
+
+func (h *httpFS) Open(name string) (http.File, error) {
+    file, err := h.fs.Open(name)
+    if err != nil {
+        return nil, err
+    }
+    return &httpFile{file}, nil
+}
+
+func (f *httpFile) Readdir(count int) ([]fs.FileInfo, error) {
+    return nil, fs.ErrInvalid
+}
+
+func (f *httpFile) Seek(offset int64, whence int) (int64, error) {
+    if seeker, ok := f.File.(io.Seeker); ok {
+        return seeker.Seek(offset, whence)
+    }
+    return 0, fs.ErrInvalid
+}
 
 func ConvertMarkdownToPDF(markdown string) ([]byte, error) {
-    html := blackfriday.Run([]byte(markdown))
-
-    pdf := gofpdf.New("P", "mm", "A4", "")
-    pdf.SetFont("Arial", "", 12)
-    pdf.AddPage()
-
-    processHTML(string(html), pdf)
+    md := goldmark.New(
+        goldmark.WithRenderer(
+            pdf.New(
+                pdf.WithTraceWriter(os.Stdout),
+                pdf.WithContext(context.Background()),
+                pdf.WithImageFS(&httpFS{os.DirFS(".")}),
+                pdf.WithHeadingFont(pdf.GetTextFont(font, pdf.FontCourier)),
+                pdf.WithBodyFont(pdf.GetTextFont(font, pdf.FontCourier)),
+                pdf.WithCodeFont(pdf.GetCodeFont(font, pdf.FontCourier)),
+            ),
+        ),
+    )
 
     var buf bytes.Buffer
-    err := pdf.Output(&buf)
-    if err != nil {
+    if err := md.Convert([]byte(markdown), &buf); err != nil {
         return nil, err
     }
 
     return buf.Bytes(), nil
-}
-
-func processHTML(html string, pdf *gofpdf.Fpdf) {
-    lines := strings.Split(html, "\n")
-    for _, line := range lines {
-        processLine(line, pdf)
-    }
-}
-
-func processLine(line string, pdf *gofpdf.Fpdf) {
-    if strings.HasPrefix(line, "<h1>") {
-        pdf.SetFont("Arial", "B", 16)
-        pdf.Cell(0, 10, stripTags(line))
-        pdf.Ln(12)
-    } else if strings.HasPrefix(line, "<h2>") {
-        pdf.SetFont("Arial", "B", 14)
-        pdf.Cell(0, 10, stripTags(line))
-        pdf.Ln(10)
-    } else if strings.HasPrefix(line, "<p>") {
-        pdf.SetFont("Arial", "", 12)
-        pdf.MultiCell(0, 10, stripTags(line), "", "L", false)
-        pdf.Ln(-1)
-    } else if strings.HasPrefix(line, "<ul>") {
-        pdf.SetFont("Arial", "", 12)
-        pdf.Cell(0, 10, stripTags(line))
-        pdf.Ln(10)
-    }
-}
-
-func stripTags(input string) string {
-    input = strings.ReplaceAll(input, "<h1>", "")
-    input = strings.ReplaceAll(input, "</h1>", "")
-    input = strings.ReplaceAll(input, "<h2>", "")
-    input = strings.ReplaceAll(input, "</h2>", "")
-    input = strings.ReplaceAll(input, "<p>", "")
-    input = strings.ReplaceAll(input, "</p>", "")
-    input = strings.ReplaceAll(input, "<ul>", "")
-    input = strings.ReplaceAll(input, "</ul>", "")
-    return input
 }
