@@ -22,7 +22,5 @@ go.work
 go.work.sum
 
 
-# Input/Output files
-
-*.md
+# Output files
 *.pdf
