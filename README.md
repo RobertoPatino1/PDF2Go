@@ -39,4 +39,4 @@ go run main.go
 curl -X POST --data-binary @<YOUR_MARKDOWN_DOCUMENT>.md -H "Content-Type: text/plain" http://localhost:8080/convert -o <OUTPUT_PDF_FILENAME>.pdf
 ```
 
-**Note:** The Markdown file example.md was taken from this [source](https://gist.github.com/allysonsilva/85fff14a22bbdf55485be947566cc09e).
+**Note:** The Markdown file *example.md* was taken from this [source](https://gist.github.com/allysonsilva/85fff14a22bbdf55485be947566cc09e).
