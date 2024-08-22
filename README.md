@@ -1,4 +1,4 @@
-# PDF_2_Go
+# PDF2Go
 
 This project allows you to convert Markdown files to PDF using a backend server written in Go. The backend processes the Markdown content and returns a PDF file.
 
